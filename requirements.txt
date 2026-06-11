@@ -1,0 +1,7 @@
+# Core perception + visualization pipeline
+ultralytics>=8.1.0      # YOLOv8 detector
+opencv-python>=4.8.0    # video I/O, drawing, image ops
+numpy>=1.24.0           # numerics / resampling
+
+# CommonRoad map rendering (src/cr_gps_drive.py, src/render_map_for_marking.py)
+commonroad-io>=2024.1   # CommonRoadFileReader, lanelet network

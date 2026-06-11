@@ -1,0 +1,38 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ── Editors / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Model weights (auto-downloaded by ultralytics on first run) ──────────────
+models/*.pt
+
+# ── Large raw media (not version-controlled — see data/README.md) ────────────
+data/raw/*.MOV
+data/raw/*.mov
+data/raw/*.mp4
+
+# ── Generated artifacts ──────────────────────────────────────────────────────
+outputs/*
+!outputs/.gitkeep
+data/outputs/*.mp4
+path_viz/*.mp4
+*.mp4
+
+# ── Bundled third-party tooling & bulk archives (kept out of the repo) ───────
+# CommonRoad Scenario Designer is an external dependency, not our source.
+commonroad-scenario-designer/
+*.zip
