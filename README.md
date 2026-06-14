@@ -86,6 +86,16 @@ python src/stats_panel.py
 
 # 5. Standalone GPS-path video (no map dependency)
 python path_viz/make_path_video.py
+
+# 6. Reactive-planner method demo: baseline vs motorcycle-aware cost function
+python src/planner_demo.py
+
+# 7. Composite the three views into the PR2 3-panel replay
+python src/compose_panels.py
+
+# 8. Split the trip into low/high-traffic segments (PR2 Sec. 2.3)
+python src/segment_traffic.py            # needs data/outputs/detection_counts.csv
+python src/segment_traffic.py --selftest # validate the logic without footage
 ```
 
 ## How it works
@@ -112,6 +122,18 @@ marker, and a HUD.
 **Stats panel.** A 400×450 overlay with a semicircular speedometer, a
 speed-over-trip area chart with a playhead, and a left/right turn-rate bar
 derived from the gradient of the unwrapped bearing.
+
+**Reactive planner (`src/frenet_planner.py`, `src/planner_demo.py`).** A
+sampling-based reactive planner in the Frenet frame (Werling et al.): candidate
+trajectories are quintic/quartic polynomials, scored on jerk, speed, lateral
+offset, and safety, with the lowest-cost feasible one chosen each replan step.
+`planner_demo.py` runs a motorcycle cut-in / lane-split scenario on the real
+VinUni GPS reference path and compares two cost functions — a **baseline** and
+a **motorcycle-aware** variant that propagates an uncertainty buffer (the
+predicted footprint inflates with the motorcycle's lateral velocity) and
+re-weights the safety cost when lateral motion is detected. It writes a
+side-by-side video (`outputs/planner_compare.mp4`) and an evaluation table
+(`outputs/planner_metrics.md`) with clearance / TTC / AEB / efficiency metrics.
 
 See [`data/raw/sensors/SENSORS.md`](data/raw/sensors/SENSORS.md) for the full
 sensor schema and conventions, and [`path_viz/README.md`](path_viz/README.md)

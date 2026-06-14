@@ -5,3 +5,7 @@ numpy>=1.24.0           # numerics / resampling
 
 # CommonRoad map rendering (src/cr_gps_drive.py, src/render_map_for_marking.py)
 commonroad-io>=2024.1   # CommonRoadFileReader, lanelet network
+
+# Reactive planner demo (src/frenet_planner.py, src/planner_demo.py)
+scipy>=1.10.0           # smooth arc-length reference spline (optional; falls
+                        # back to linear interpolation if unavailable)

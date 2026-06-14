@@ -3,6 +3,7 @@ Obstacle detection + distance estimation for first-person driving video.
 Uses YOLOv8 for detection and per-class known heights for monocular distance estimation.
 """
 
+import csv
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -85,6 +86,13 @@ def process_video(input_path: str, output_path: str):
     print(f"Video: {width}x{height} @ {fps:.1f} fps  |  {total} frames")
     print(f"Estimated focal length: {focal:.0f} px")
 
+    # Per-frame detection counts -> drives src/segment_traffic.py (PR2 Sec. 2.3)
+    counts_path = Path(output_path).with_name("detection_counts.csv")
+    counts_f = open(counts_path, "w", newline="")
+    counts_w = csv.writer(counts_f)
+    counts_w.writerow(["frame", "t", "n_total", "n_car", "n_motorcycle",
+                       "n_person", "nearest_m"])
+
     frame_idx = 0
     while True:
         ret, frame = cap.read()
@@ -93,6 +101,8 @@ def process_video(input_path: str, output_path: str):
 
         results = model(frame, conf=CONFIDENCE_THRESHOLD, verbose=False)[0]
 
+        n_total = n_car = n_moto = n_person = 0
+        nearest = float("inf")
         for i, box in enumerate(results.boxes):
             cls_id   = int(box.cls[0])
             cls_name = model.names[cls_id]
@@ -109,11 +119,21 @@ def process_video(input_path: str, output_path: str):
             real_h   = KNOWN_HEIGHTS.get(cls_name, DEFAULT_HEIGHT)
             distance = (real_h * focal) / bbox_h   # metres
 
+            n_total += 1
+            n_car    += cls_name == "car"
+            n_moto   += cls_name == "motorcycle"
+            n_person += cls_name == "person"
+            nearest = min(nearest, distance)
+
             color = PALETTE[cls_id % len(PALETTE)]
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
             label = f"{cls_name} {distance:.1f}m ({conf:.0%})"
             draw_label(frame, label, x1, y1, color)
+
+        counts_w.writerow([frame_idx, round(frame_idx / fps, 3), n_total,
+                           n_car, n_moto, n_person,
+                           "" if nearest == float("inf") else round(nearest, 2)])
 
         # Progress overlay
         info = f"Frame {frame_idx+1}/{total}"
@@ -128,7 +148,9 @@ def process_video(input_path: str, output_path: str):
 
     cap.release()
     out.release()
+    counts_f.close()
     print(f"\nDone. Output saved to: {output_path}")
+    print(f"Per-frame counts: {counts_path}")
 
 
 if __name__ == "__main__":
