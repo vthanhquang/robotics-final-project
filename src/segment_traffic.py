@@ -142,9 +142,13 @@ def main():
         t, n, cls = load_counts(COUNTS)
         note = ""
     else:
-        sys.exit(f"No {COUNTS.relative_to(ROOT)} found.\n"
-                 f"Run detection first:  python src/label_obstacles.py\n"
-                 f"or validate the tool:  python src/segment_traffic.py --selftest")
+        # No real counts yet -> don't hard-fail; fall back to a clearly-marked
+        # synthetic run so the tool still produces (labelled) output.
+        print(f"WARNING: {COUNTS.relative_to(ROOT)} not found -- using synthetic "
+              f"counts.\n  For real segments run detection on the source .MOV "
+              f"first:  python src/label_obstacles.py\n")
+        t, n, cls = synth_counts()
+        note = "  *(synthetic counts — no detection_counts.csv yet)*"
     segs = segment(t, n, cls)
     write_outputs(segs, note)
 
