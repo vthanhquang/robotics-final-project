@@ -96,6 +96,9 @@ python src/compose_panels.py
 # 8. Split the trip into low/high-traffic segments (PR2 Sec. 2.3)
 python src/segment_traffic.py            # needs data/outputs/detection_counts.csv
 python src/segment_traffic.py --selftest # validate the logic without footage
+
+# 9. Evaluate planners across a scenario suite (baseline vs conservative vs moto-aware)
+python src/evaluate_planners.py
 ```
 
 ## How it works

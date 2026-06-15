@@ -126,6 +126,36 @@ Two more tools, matching PR2:
 > python src/compose_panels.py       # -> real 3-panel replay with the camera video
 > ```
 
+## Update — planner tested on a scenario *suite* (answering Quang)
+
+Quang's point was right: one hand-made scenario isn't enough. So
+`python src/evaluate_planners.py` now runs a **dataset of 24 scenarios**
+(3 real GPS road segments × 8 motorcycle behaviours) against **3 planners**
+(baseline + conservative + moto-aware) and reports aggregate metrics
+(`outputs/planner_evaluation.md` + `.csv`).
+
+**Overall result (24 scenarios each):**
+
+| Planner | Collision rate | Clearance pass (≥0.3 m) | Mean R_T (lower=faster) |
+|---|---|---|---|
+| baseline | 38% | 50% | 1.12 |
+| conservative ("just be careful") | 0% | 100% | 1.72 |
+| **moto-aware (ours)** | **12%** | **88%** | **1.35** |
+
+**Three takeaways for the professor:**
+1. **The gain is general, not one cherry-picked case** — across the whole suite,
+   collisions drop 38% → 12% and clearance-pass rises 50% → 88%.
+2. **It's targeted, not just "slower"** — in *no-conflict* scenarios moto-aware
+   has the **same** efficiency as baseline (R_T 1.01 = 1.01); it only intervenes
+   on real lateral risk.
+3. **Better than naive caution** — the conservative planner is also safe but
+   slow everywhere (R_T 1.72); moto-aware gets most of the safety at far less
+   efficiency cost (1.35).
+
+Honest limit: moto-aware still collides in the most aggressive cut-ins (3/24).
+That's the tuning + calibration target (Linh's Wk 15–16 VN-rider data), and the
+`Moto` behaviour is a one-line swap to those distributions.
+
 ## What's left (suggested owners)
 
 | Item | Status | Owner |
