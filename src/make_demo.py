@@ -87,6 +87,10 @@ def main():
     results.append(step("path video (extra)", ["path_viz/make_path_video.py"],
                         ["path_viz/path_video.mp4"], required=False,
                         skip=FAST, skip_reason="--fast"))
+    results.append(step("presentation slides", ["src/make_slides.py"],
+                        ["outputs/slide_3_results.png"]))
+    results.append(step("demo reel (fallback)", ["src/demo_reel.py"],
+                        ["outputs/demo_reel.mp4"]))
 
     # ── summary ──────────────────────────────────────────────────────────────
     print("\n" + "=" * 64)
