@@ -99,6 +99,12 @@ python src/segment_traffic.py --selftest # validate the logic without footage
 
 # 9. Evaluate planners across a scenario suite (baseline vs conservative vs moto-aware)
 python src/evaluate_planners.py
+
+# 10. Regenerate every demo artifact in one command (prep / dry-run)
+python src/make_demo.py
+
+# 11. Stitch the artifacts into one normalized demo-reel video (fallback)
+python src/demo_reel.py
 ```
 
 ## How it works
