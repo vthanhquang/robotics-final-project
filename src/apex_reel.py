@@ -32,12 +32,12 @@ GREEN = (120, 230, 140)
 F = cv2.FONT_HERSHEY_SIMPLEX
 
 VIDEOS = [
-    ("quang_cut_in_C07",         "Cut-in"),
-    ("quang_crossing_X01",       "Junction crossing"),
-    ("quang_shoulder_merge_H01", "Shoulder merge"),
-    ("quang_multi_lane_W01",     "Multi-lane weave"),
-    ("quang_two_moto_T2-05",     "Two motorcycles"),
-    ("quang_three_moto_T3-03",   "Three motorcycles"),
+    ("Phung_cut_in_C07",         "Cut-in"),
+    ("Phung_crossing_X01",       "Junction crossing"),
+    ("Phung_shoulder_merge_H01", "Shoulder merge"),
+    ("Phung_multi_lane_W01",     "Multi-lane weave"),
+    ("Phung_two_moto_T2-05",     "Two motorcycles"),
+    ("Phung_three_moto_T3-03",   "Three motorcycles"),
 ]
 
 

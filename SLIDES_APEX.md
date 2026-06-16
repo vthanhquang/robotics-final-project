@@ -48,16 +48,16 @@ Source numbers: Quang's 52-scenario benchmark (`planner-scenario-suite` branch /
 ## Live demo (6 min) — the 6 scenario videos
 Each is a 4-panel comparison (baseline | ORCA/VO | moto-aware | APEX): others collide, APEX stays safe.
 
+Re-render the 4-panel comparison videos with `python src/scenario_videos_apex.py`
+(baseline | ORCA/VO | moto-aware | APEX; clean "APEX (predictive, ours)" label):
+
 | Order | Video | Family |
 |---|---|---|
-| 1 | `quang_cut_in_C07.mp4` | Cut-in |
-| 2 | `quang_crossing_X01.mp4` | Junction crossing |
-| 3 | `quang_shoulder_merge_H01.mp4` | Shoulder merge |
-| 4 | `quang_multi_lane_W01.mp4` | Multi-lane weave |
-| 5 | `quang_two_moto_T2-05.mp4` | Two motorcycles |
-| 6 | `quang_three_moto_T3-03.mp4` | Three motorcycles |
+| 1 | `Phung_cut_in_C07.mp4` | Cut-in |
+| 2 | `Phung_crossing_X01.mp4` | Junction crossing |
+| 3 | `Phung_shoulder_merge_H01.mp4` | Shoulder merge |
+| 4 | `Phung_multi_lane_W01.mp4` | Multi-lane weave |
+| 5 | `Phung_two_moto_T2-05.mp4` | Two motorcycles |
+| 6 | `Phung_three_moto_T3-03.mp4` | Three motorcycles |
 
-Lead with **crossing** and **three-moto** (strongest contrast). Fallback: play `outputs/apex_reel.mp4` (85 s) and narrate.
-
-> Note: APEX lives on the `planner-scenario-suite` branch; these slide/reel tools
-> are on `phung/planner-replay-tools`. The two branches still need merging.
+Lead with **crossing** and **three-moto** (strongest contrast). Fallback: play `outputs/apex_reel.mp4` (~85 s) and narrate.
