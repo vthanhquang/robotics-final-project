@@ -122,7 +122,7 @@ def main():
 
     # ── Slide: APEX architecture — inheritance (from apex_architecture.html) ──
     if INHERIT_IMG.exists():
-        image_slide(prs, blank, INHERIT_IMG)
+        image_slide(prs, blank, INHERIT_IMG, bg=WHITE)
 
     # ── Slide: Real data -> behaviour -> simulation  (from PR2) ──
     s = prs.slides.add_slide(tc)
@@ -141,7 +141,7 @@ def main():
 
     # ── Slide: APEX core (from apex_architecture.html) ──
     if CORE_IMG.exists():
-        image_slide(prs, blank, CORE_IMG)
+        image_slide(prs, blank, CORE_IMG, bg=WHITE)
 
     # ── Slide: Results (table + % improvements) ──
     s = prs.slides.add_slide(to)
@@ -179,7 +179,7 @@ def main():
 
     # ── Slide: Learning-augmented MPC (next stage, from apex_architecture.html) ──
     if LEARN_IMG.exists():
-        image_slide(prs, blank, LEARN_IMG)
+        image_slide(prs, blank, LEARN_IMG, bg=WHITE)
 
     # ── Slide: Demo & next ──
     s = prs.slides.add_slide(tc)

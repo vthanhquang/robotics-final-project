@@ -20,11 +20,34 @@ ROOT = Path(__file__).resolve().parent.parent
 HTML = ROOT / "apex_architecture.html"
 OUT = ROOT / "outputs"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-BG = (0x19, 0x14, 0x0f)            # #0f1419 in BGR
+LIGHT = True                       # render in the white/red/blue VinUni theme
+BG = (255, 255, 255) if LIGHT else (0x19, 0x14, 0x0f)   # trim background (BGR)
+
+# dark -> light (white / VinUni red+blue) replacements
+_LIGHT_REPL = {
+    # :root palette
+    "--bg:#0f1419": "--bg:#ffffff", "--panel:#171e26": "--panel:#f5f7fa",
+    "--panel2:#1d2731": "--panel2:#eef2f7", "--ink:#e8edf2": "--ink:#1d2733",
+    "--mut:#9fb0c0": "--mut:#5b6b7b", "--line:#33414f": "--line:#d3dbe4",
+    "--apex:#3ddc84": "--apex:#1e9e4a", "--idm:#5aa9ff": "--idm:#1f5fb2",
+    "--orca:#ffb454": "--orca:#c47d10", "--frenet:#c77dff": "--frenet:#7a3fb0",
+    "--learn:#ff7aa2": "--learn:#c0407a", "--bad:#ff5d5d": "--bad:#cc3b3b",
+    "--good:#3ddc84": "--good:#1e9e4a",
+    # hardcoded dark surfaces
+    "linear-gradient(180deg,#16241c,#13201a)": "linear-gradient(180deg,#eefaf2,#e6f6ec)",
+    "color:#cfe9d8;background:#0e1813": "color:#157a39;background:#eef2f7",
+    # inline category-chip backgrounds
+    "background:#13314f": "background:#e7effb", "background:#4a3415": "background:#fbf0dc",
+    "background:#3a2452": "background:#f0e7fb", "background:#4a2233": "background:#fbe7f0",
+    "background:#16341f": "background:#e7fbee", "background:#26303a": "background:#eef2f7",
+}
 
 
 def build_pages():
     html = HTML.read_text()
+    if LIGHT:
+        for a, b in _LIGHT_REPL.items():
+            html = html.replace(a, b)
     style = re.search(r"<style>.*?</style>", html, re.S).group(0)
     wrap = re.search(r'<div class="wrap">(.*)</div>\s*</body>', html, re.S).group(1)
     parts = re.split(r'<!-- =+ ([A-Z /\-&]+?) =+ -->', wrap)
