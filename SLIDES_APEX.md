@@ -1,5 +1,12 @@
 # Slide content — APEX planner (paste-ready)
 
+## Presentation links / files
+- **Canva (edit):** https://www.canva.com/d/Ecb3-gCSY58wJte
+- **Canva (view/present):** https://www.canva.com/d/Hau92F41BJA4mQh
+- **PPTX (VinUni template):** `slides/Vietnam-MixedTrafficSim_APEX.pptx` (build: `python src/make_pptx.py`)
+- **PDF deck:** `slides/SLIDES_APEX.pdf`  ·  **Demo reel:** `outputs/apex_reel.mp4`  ·  **Slide PNGs:** `outputs/slide_*.png`
+
+
 Source numbers: Quang's 52-scenario benchmark (`planner-scenario-suite` branch /
 `slide_planning.md`). Rendered slides: `outputs/slide_{1,2,3}_*.png`
 (`python src/make_slides.py`). Fallback reel: `outputs/apex_reel.mp4`
