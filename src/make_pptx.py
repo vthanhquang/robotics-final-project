@@ -16,6 +16,11 @@ from pptx.enum.text import PP_ALIGN
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "vinuni_template_Presentation1.pptx"
 OUT = ROOT / "outputs" / "Vietnam-MixedTrafficSim_APEX.pptx"
+ARCH_IMG = ROOT / "outputs" / "arch_pipeline.png"
+APEX_IMG = ROOT / "outputs" / "apex_model.png"
+SHOT = ROOT / "slides" / ("Quang Vu - Vinuni - Robotic - Vietnam Mixed Trafficsim "
+                          "- Real time sync driving trip "
+                          "[ADWuhLiD450 - 2056x514 - 0m56s].png")
 
 RED = RGBColor(0xB2, 0x1F, 0x1F)
 INK = RGBColor(0x22, 0x22, 0x22)
@@ -89,6 +94,12 @@ def main():
         ("Goal: a planner that ANTICIPATES motorcycle conflicts on the real VinUni road.", 0, GREEN, True, 20),
     ])
 
+    # ── Slide: System architecture (diagram) ──
+    s = prs.slides.add_slide(to)
+    s.placeholders[0].text = "System architecture"
+    if ARCH_IMG.exists():
+        s.shapes.add_picture(str(ARCH_IMG), Inches(0.45), Inches(1.45), width=Inches(12.4))
+
     # ── Slide: Real data -> behaviour -> simulation  (from PR2) ──
     s = prs.slides.add_slide(tc)
     s.placeholders[0].text = "Grounded in real Vietnamese data (PR2)"
@@ -101,19 +112,17 @@ def main():
         ("Motorcycle calibration: 4 behaviours (lane-splitting, cut-in, close-following, ambiguous priority)", 0, INK, False, 17),
         ("-> lateral velocity, acceleration, heading-change, gap -> stochastic moto agents = APEX's occupancy-ellipse + dynamic safety cost.", 1, GREEN, True, 16),
     ])
+    if SHOT.exists():
+        s.shapes.add_picture(str(SHOT), Inches(2.8), Inches(5.6), width=Inches(7.7))
 
-    # ── Slide: Method ──
-    s = prs.slides.add_slide(tc)
+    # ── Slide: Method (APEX model diagram) ──
+    s = prs.slides.add_slide(to)
     s.placeholders[0].text = "APEX - predictive risk-aware planner"
-    bullets(s.placeholders[1], [
-        ("Fuses car-following + reactive avoidance + sampling; fixes each one's flaw:", 0, INK, True, 18),
-        ("Predict every motorcycle over a 4 s horizon + reachability envelope -> anticipates a cut-in before it starts.", 0, INK, False, 17),
-        ("Hard footprint-clearance margin to all motos over the whole horizon -> collision-free by construction.", 0, INK, False, 17),
-        ("Junction-yield speed-cap for roadside / crossing motos -> solves crossings (0/4).", 0, INK, False, 17),
-        ("Multi-horizon trajectories -> brake hard when needed, full speed when clear (no over-braking).", 0, INK, False, 17),
-        ("Speed-maximizing objective under the safety constraint -> most efficient among safe planners.", 0, INK, False, 17),
-        ("Runs on the real VinUni CommonRoad map + recorded GPS.", 0, GREEN, True, 17),
-    ])
+    if APEX_IMG.exists():
+        s.shapes.add_picture(str(APEX_IMG), Inches(0.5), Inches(1.7), width=Inches(12.3))
+    cap = s.shapes.add_textbox(Inches(0.5), Inches(6.7), Inches(12.3), Inches(0.6))
+    bullets(cap, [("Fuses car-following (IDM) + reactive avoidance (ORCA/VO) + "
+                   "sampling (Frenet); fixes each one's flaw.", 0, GREY, False, 14)])
 
     # ── Slide: Results (table + % improvements) ──
     s = prs.slides.add_slide(to)
