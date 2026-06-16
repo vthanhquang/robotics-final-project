@@ -20,6 +20,17 @@ ROOT = Path(__file__).resolve().parent.parent
 EVAL_CSV = ROOT / "outputs" / "planner_evaluation.csv"
 OUT = ROOT / "outputs"
 
+# APEX 52-scenario benchmark (Quang's planner-scenario-suite branch, slide_planning.md)
+# (label, collisions, <0.3m fails, mean min-clr m, mean R_T)
+APEX_RESULTS = [
+    ("IDM (Treiber'00)",      "5/52",  "7/52",  "5.73",  "1.57"),
+    ("ORCA/VO (vdB'11)",      "1/52",  "1/52",  "2.02",  "1.34"),
+    ("baseline Frenet",       "28/52", "30/52", "1.24",  "1.27"),
+    ("conservative",          "0/52",  "0/52",  "13.96", "1.86"),
+    ("moto-aware (prev ours)","13/52", "14/52", "2.31",  "1.33"),
+    ("APEX (predictive, OURS)", "0/52", "0/52", "2.16", "1.43"),
+]
+
 W, H = 1920, 1080
 BG = (32, 30, 28)
 INK = (240, 240, 240)
@@ -91,60 +102,57 @@ def slide1():
 # ── Slide 2: method ───────────────────────────────────────────────────────────
 def slide2():
     img = base(2)
-    title(img, "Method: Motorcycle-Aware Reactive Planner",
-          "proposal obj. 3  /  Progress Report 1, sec. 3.3")
-    y = 360
-    bullet(img, y, "Frenet-frame sampling planner (Werling): quintic/quartic "
-                   "candidate trajectories,", 0.92); y += 80
-    bullet(img, y, "scored on jerk + speed + lateral offset + safety; lowest-cost "
-                   "feasible one each step.", 0.92, SUB, indent=60); y += 110
-    bullet(img, y, "Our improvement over the baseline:", 0.95, ACC); y += 90
-    bullet(img, y, "1) Uncertainty-buffer propagation - the motorcycle's predicted",
-           0.9, INK, indent=60); y += 70
-    bullet(img, y, "    footprint inflates with its lateral velocity -> the cut-in "
-                   "is seen early.", 0.9, SUB, indent=60, dot=False); y += 90
-    bullet(img, y, "2) Dynamic safety re-weighting - safety cost rises when lateral",
-           0.9, INK, indent=60); y += 70
-    bullet(img, y, "    motion is detected.", 0.9, SUB, indent=60, dot=False); y += 100
+    title(img, "Method: APEX predictive risk-aware planner",
+          "fuses car-following + reactive avoidance + sampling; fixes each flaw")
+    y = 340
+    rows = [
+        "1) Predict every motorcycle over a 4 s horizon + reachability envelope",
+        "    -> anticipates a cut-in before it starts (vs blind constant-position).",
+        "2) Hard footprint-clearance margin to all motos over the whole horizon",
+        "    -> collision-free by construction (fixes the point-box flaw).",
+        "3) Junction-yield speed-cap for roadside / crossing motos",
+        "    -> solves crossings (0/4) where every other planner fails.",
+        "4) Multi-horizon trajectories -> brake hard when needed, full speed when",
+        "    clear (fixes IDM/conservative over-braking).",
+        "5) Speed-maximizing objective under the safety constraint",
+        "    -> most efficient among collision-free planners.",
+    ]
+    for i, s in enumerate(rows):
+        head = not s.startswith("    ")
+        bullet(img, y, s, 0.82, INK if head else SUB, indent=40,
+               dot=head); y += 66 if head else 60
+    y += 10
     bullet(img, y, "Runs on the real VinUni CommonRoad map + recorded GPS.",
-           0.95, GREEN)
+           0.85, GREEN)
     cv2.imwrite(str(OUT / "slide_2_method.png"), img)
 
 
 # ── Slide 3: results ──────────────────────────────────────────────────────────
 def slide3():
     img = base(3)
-    data = read_eval()
-    title(img, "Results: General, Targeted, Efficient",
-          ("24 scenarios x 3 planners" if data else "run src/make_demo.py first"))
-    if not data:
-        cv2.imwrite(str(OUT / "slide_3_results.png"), img)
-        return
-    agg, nsc = data
-    # table
-    cols = ["Planner", "Collision rate", "Clearance pass", "Mean R_T"]
-    xs = [90, 720, 1130, 1520]
-    y = 360
+    title(img, "Results: 52 scenarios x 6 planners",
+          "only conservative & APEX are crash-free; APEX is the efficient one")
+    cols = ["Planner", "Collisions", "<0.3 m fails", "Min-clr", "R_T"]
+    xs = [70, 760, 1060, 1400, 1660]
+    y = 300
     for c, x in zip(cols, xs):
-        cv2.putText(img, c, (x, y), F, 0.9, ACC, 2, cv2.LINE_AA)
-    cv2.line(img, (80, y + 18), (1780, y + 18), (90, 90, 90), 1)
-    names = {"baseline": "baseline", "conservative": "conservative",
-             "moto_aware": "moto-aware (ours)"}
-    for i, v in enumerate(("baseline", "conservative", "moto_aware")):
-        cr, pa, rt = agg[v]
-        yy = y + 90 + i * 80
-        hot = v == "moto_aware"
+        cv2.putText(img, c, (x, y), F, 0.72, ACC, 2, cv2.LINE_AA)
+    cv2.line(img, (60, y + 16), (1850, y + 16), (90, 90, 90), 1)
+    for i, (name, coll, fails, clr, rt) in enumerate(APEX_RESULTS):
+        yy = y + 64 + i * 62
+        hot = name.startswith("APEX")
         col = GREEN if hot else INK
         th = 3 if hot else 2
-        cv2.putText(img, names[v], (xs[0], yy), F, 0.9, col, th, cv2.LINE_AA)
-        cv2.putText(img, f"{cr:.0f}%", (xs[1], yy), F, 0.9, col, th, cv2.LINE_AA)
-        cv2.putText(img, f"{pa:.0f}%", (xs[2], yy), F, 0.9, col, th, cv2.LINE_AA)
-        cv2.putText(img, f"{rt:.2f}", (xs[3], yy), F, 0.9, col, th, cv2.LINE_AA)
-    y = y + 90 + 3 * 80 + 60
-    for s, c in [("Safety up: collisions 38% -> 12%, clearance-pass 50% -> 88%.", INK),
-                 ("Targeted: same efficiency as baseline when safe (R_T 1.01 = 1.01).", INK),
-                 ("Safer AND faster than just being cautious (1.35 vs 1.72).", GREEN)]:
-        bullet(img, y, s, 0.9, c); y += 80
+        for x, val in zip(xs, (name, coll, fails, clr, rt)):
+            cv2.putText(img, val, (x, yy), F, 0.66, col, th, cv2.LINE_AA)
+
+    y = y + 64 + len(APEX_RESULTS) * 62 + 46
+    cv2.putText(img, "APEX vs the rest:", (70, y), F, 0.82, ACC, 2, cv2.LINE_AA)
+    y += 64
+    for s in ["0 collisions across all 52  ->  -100% vs baseline (28) and vs our previous (13)",
+              "23% faster than the only other crash-free planner (R_T 1.43 vs 1.86)",
+              "beats published IDM & ORCA baselines; crossings solved 0/4"]:
+        bullet(img, y, s, 0.74, GREEN); y += 62
     cv2.imwrite(str(OUT / "slide_3_results.png"), img)
 
 
