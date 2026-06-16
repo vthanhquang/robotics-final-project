@@ -1,8 +1,9 @@
 # Slide content — APEX planner (paste-ready)
 
 ## Presentation links / files
-- **Canva (present/view):** https://www.canva.com/d/mb88rtVRfhOFmh3
-- **Canva (edit):** https://www.canva.com/d/RzKxfcome1U7T9o
+- **APEX = Anticipatory · Predictive · EXclusion** (hard-rejects any trajectory breaching the clearance margin → collision-free by construction)
+- **Canva (present/view):** https://www.canva.com/d/PCeFlOwDlKCLgvQ
+- **Canva (edit):** https://www.canva.com/d/Gl6nFAY2LI6YN26
 - _(8-slide v4: cover, problem, **APEX architecture — inheritance**, real-data (PR2)+screenshot, **APEX core**, results, **learning-augmented MPC**, demo)_
 - Architecture from `apex_architecture.html` → `slides/apex_arch_{inherit,core,learn}.png` (build: `python src/render_html_sections.py`)
 - **PPTX (VinUni template):** `slides/Vietnam-MixedTrafficSim_APEX.pptx` (build: `python src/make_pptx.py`)
