@@ -22,7 +22,10 @@ OUT = ROOT / "outputs" / "Vietnam-MixedTrafficSim_APEX.pptx"
 INHERIT_IMG = ROOT / "outputs" / "apex_arch_inherit.png"
 CORE_IMG    = ROOT / "outputs" / "apex_arch_core.png"
 LEARN_IMG   = ROOT / "outputs" / "apex_arch_learn.png"
+BENCH_IMG   = ROOT / "outputs" / "bench_bars.png"
+IMPROVE_IMG = ROOT / "outputs" / "apex_improvement.png"
 DARK = RGBColor(0x0F, 0x14, 0x19)
+WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 SHOT = ROOT / "slides" / ("Quang Vu - Vinuni - Robotic - Vietnam Mixed Trafficsim "
                           "- Real time sync driving trip "
                           "[ADWuhLiD450 - 2056x514 - 0m56s].png")
@@ -50,12 +53,12 @@ def layout_by_name(prs, name):
     return prs.slide_layouts[1]
 
 
-def image_slide(prs, blank, img):
-    """Full-bleed dark slide holding one architecture image, centred."""
+def image_slide(prs, blank, img, bg=DARK):
+    """Full-bleed slide holding one image, centred on a solid background."""
     s = prs.slides.add_slide(blank)
     SW, SH = prs.slide_width, prs.slide_height
     rect = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, SW, SH)
-    rect.fill.solid(); rect.fill.fore_color.rgb = DARK; rect.line.fill.background()
+    rect.fill.solid(); rect.fill.fore_color.rgb = bg; rect.line.fill.background()
     iw, ih = Image.open(img).size
     maxw, maxh = SW - Inches(0.5), SH - Inches(0.5)
     if maxw / (iw / ih) <= maxh:          # width-bound
@@ -166,6 +169,13 @@ def main():
         ("23% faster than the only other crash-free planner (R_T 1.43 vs 1.86); beats published IDM & ORCA", 0, GREEN, False, 15),
         ("Metrics (PR2 Sec 6): collision = 0, min clearance > 0.3 m, TTC exposure < 2 s, AEB = 0, efficiency R_T <= 1.25.", 0, GREY, False, 13),
     ])
+
+    # ── Slide: benchmark bar charts ──
+    if BENCH_IMG.exists():
+        image_slide(prs, blank, BENCH_IMG, bg=WHITE)
+    # ── Slide: APEX % improvement ──
+    if IMPROVE_IMG.exists():
+        image_slide(prs, blank, IMPROVE_IMG, bg=WHITE)
 
     # ── Slide: Learning-augmented MPC (next stage, from apex_architecture.html) ──
     if LEARN_IMG.exists():
