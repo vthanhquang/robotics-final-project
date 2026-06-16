@@ -226,19 +226,28 @@ def _predict_obstacle(obs: ObstacleState, t: np.ndarray, mode: str,
     return s_pred, d_pred, lat_buf
 
 
-def plan(ego: FrenetState, obs: ObstacleState, mode: str, p: PlannerParams):
-    """One receding-horizon planning step. Returns (best, all_candidates)."""
-    # dynamic safety re-weighting (moto_aware only)
+def plan(ego: FrenetState, obs, mode: str, p: PlannerParams):
+    """One receding-horizon planning step. Returns (best, all_candidates).
+
+    `obs` may be a single ObstacleState or a list of them (multi-motorcycle):
+    the safety cost sums over all obstacles and a candidate is infeasible if it
+    geometrically collides with any one. Single-obstacle behaviour is unchanged.
+    """
+    obstacles = list(obs) if isinstance(obs, (list, tuple)) else [obs]
+
+    # dynamic safety re-weighting (moto_aware only): driven by the most
+    # laterally-active obstacle in the scene.
     w_safe = p.w_safe
-    if mode == "moto_aware" and abs(obs.d_d) > p.react_lat_thresh:
-        w_safe *= (1.0 + p.beta_reweight * abs(obs.d_d))
+    max_dd = max((abs(o.d_d) for o in obstacles), default=0.0)
+    if mode == "moto_aware" and max_dd > p.react_lat_thresh:
+        w_safe *= (1.0 + p.beta_reweight * max_dd)
 
     v_targets = [max(0.0, p.v_desired - k * p.v_step) for k in range(p.v_samples)]
 
     candidates: list[Candidate] = []
     for T in p.horizons:
         t = np.arange(0.0, T + 1e-9, p.dt)
-        s_o, d_o, lat_buf = _predict_obstacle(obs, t, mode, p)
+        preds = [_predict_obstacle(o, t, mode, p) for o in obstacles]
         for d1 in p.d_samples:
             lat = QuinticPolynomial(ego.d, ego.d_d, ego.d_dd, d1, 0.0, 0.0, T)
             d = lat.calc(t)
@@ -262,15 +271,18 @@ def plan(ego: FrenetState, obs: ObstacleState, mode: str, p: PlannerParams):
                 c_lat = p.w_lat * d1 ** 2
                 c_speed = p.w_speed * (p.v_desired - v1) ** 2
 
-                # safety: elliptical proximity to the predicted obstacle footprint
-                ds = s - s_o
-                dd = d - d_o
-                overlap = 1.0 - (ds / p.base_long_buf) ** 2 - (dd / lat_buf) ** 2
-                overlap = np.clip(overlap, 0.0, None)
-                c_safe = w_safe * float(np.sum(overlap ** 2))
-                # hard collision (geometric) makes the candidate infeasible
-                if np.any((np.abs(ds) < p.hard_long) & (np.abs(dd) < p.hard_lat)):
-                    feasible = False
+                # safety: elliptical proximity, summed over every obstacle
+                overlap_sum = 0.0
+                for s_o, d_o, lat_buf in preds:
+                    ds = s - s_o
+                    dd = d - d_o
+                    overlap = 1.0 - (ds / p.base_long_buf) ** 2 - (dd / lat_buf) ** 2
+                    overlap = np.clip(overlap, 0.0, None)
+                    overlap_sum += float(np.sum(overlap ** 2))
+                    # hard collision with any obstacle -> infeasible
+                    if np.any((np.abs(ds) < p.hard_long) & (np.abs(dd) < p.hard_lat)):
+                        feasible = False
+                c_safe = w_safe * overlap_sum
 
                 cost = c_jerk + c_time + c_lat + c_speed + c_safe
                 candidates.append(Candidate(t, s, d, s_d, s_dd, d_d, d_dd,
