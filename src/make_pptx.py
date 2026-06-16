@@ -89,6 +89,19 @@ def main():
         ("Goal: a planner that ANTICIPATES motorcycle conflicts on the real VinUni road.", 0, GREEN, True, 20),
     ])
 
+    # ── Slide: Real data -> behaviour -> simulation  (from PR2) ──
+    s = prs.slides.add_slide(tc)
+    s.placeholders[0].text = "Grounded in real Vietnamese data (PR2)"
+    bullets(s.placeholders[1], [
+        ("5 real car trips around VinUni / Ocean Park (QL5 corridor, roundabout, lakeside, residential, faculty parking).", 0, INK, False, 17),
+        ("iPhone 12 Sensor Logger: video + GPS + IMU (100 Hz) + compass + barometer.", 1, GREY, False, 16),
+        ("YOLOv8 detects car / motorcycle / pedestrian -> actor counts (density), nearest range (TTC), class mix.", 0, INK, False, 17),
+        ("Synchronized 3-panel replay: GPS on the CommonRoad/Lanelet2 map | camera detections | drive stats.", 0, INK, False, 17),
+        ("Two demo modes from real density: low-traffic (<=4 actors/frame) vs high-traffic (>4).", 0, INK, False, 17),
+        ("Motorcycle calibration: 4 behaviours (lane-splitting, cut-in, close-following, ambiguous priority)", 0, INK, False, 17),
+        ("-> lateral velocity, acceleration, heading-change, gap -> stochastic moto agents = APEX's occupancy-ellipse + dynamic safety cost.", 1, GREEN, True, 16),
+    ])
+
     # ── Slide: Method ──
     s = prs.slides.add_slide(tc)
     s.placeholders[0].text = "APEX - predictive risk-aware planner"
@@ -126,6 +139,7 @@ def main():
         ("Only conservative & APEX are crash-free - and APEX is the efficient one:", 0, INK, True, 16),
         ("0 collisions / 0 clearance-fails  ->  -100% vs baseline (28) and vs our previous moto-aware (13)", 0, GREEN, False, 15),
         ("23% faster than the only other crash-free planner (R_T 1.43 vs 1.86); beats published IDM & ORCA", 0, GREEN, False, 15),
+        ("Metrics (PR2 Sec 6): collision = 0, min clearance > 0.3 m, TTC exposure < 2 s, AEB = 0, efficiency R_T <= 1.25.", 0, GREY, False, 13),
     ])
 
     # ── Slide: Demo & next ──
@@ -135,6 +149,7 @@ def main():
         ("6 scenario videos (4 panels: baseline | ORCA/VO | moto-aware | APEX) - others collide, APEX stays safe:", 0, INK, False, 18),
         ("cut-in, junction crossing, shoulder merge, multi-lane weave, two- and three-motorcycle scenes.", 1, GREY, False, 16),
         ("Aligns with the CommonRoad 2024 competition (winning Frenet paradigm; we add prediction it lacked).", 0, INK, False, 18),
+        ("Honest limits (PR2 Sec 7): motorcycle-behaviour calibration in progress; YOLO range is approximate.", 0, RED, False, 16),
         ("Next: calibrate motorcycle behaviour from 200 h moto + 5 car-trip data; CARLA 3D validation.", 0, GREEN, True, 18),
     ])
 
