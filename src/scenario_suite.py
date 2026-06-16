@@ -41,43 +41,101 @@ AEB_DECEL     = 3.0      # m/s^2
 
 
 # ── Scenario definition ───────────────────────────────────────────────────────
+# Geometry grounded in the CommonRoad map (src/inspect_map.py): lane width
+# LANE = 3.5 m near the route, the widest road there is 3 parallel lanes, and
+# there are real perpendicular crossroads near the route start. Lateral offsets
+# below are expressed in lanes: +LANE = one lane to the left of the ego lane
+# centre, -LANE = one lane to the right (VN drives on the right).
+LANE = 3.5          # m, measured median lane width near the route
+HALF = LANE / 2.0   # m, lane edge / shoulder line
+
+
 @dataclass
 class Scenario:
     name: str
-    moto_v: float        # m/s longitudinal speed of moto
+    family: str          # cut_in_left | cut_in_right | blocking | lane_split |
+                         # crossing | multi_lane
+    moto_v: float        # m/s longitudinal speed of moto (along ego's path)
     moto_s0: float       # m, longitudinal gap ahead of ego at t=0
-    moto_d0: float       # m, lateral offset before cut-in
-    moto_d1: float       # m, lateral offset after cut-in (0 = ego lane centre)
-    cut_t0: float        # s, cut-in start
-    cut_t1: float        # s, cut-in end
+    moto_d0: float       # m, lateral offset before the manoeuvre
+    moto_d1: float       # m, lateral offset after the manoeuvre (0 = ego lane)
+    cut_t0: float        # s, manoeuvre start
+    cut_t1: float        # s, manoeuvre end
     ego_v: float = 8.0   # m/s ego desired speed
+    ego_lat_room: float = 0.6  # m, lateral room the ego may use (road-dependent:
+                               # 0.6 = single lane, ~LANE = multi-lane road)
     note: str = ""
 
 
-# Ten escalating lane-split / cut-in scenarios. Knobs that make a cut-in
-# dangerous: small initial gap, slow squeezing moto in front of a fast ego,
-# short (snap) cut-in window, and late cut-in at close range.
+# Realistic Vietnamese mixed-traffic motorcycle scenarios (deliberately NOT the
+# earlier extreme/reckless set). Manoeuvres are gentle (3-5 s lane changes,
+# 18-35 km/h motos, 18-32 m gaps); crossings are quick only because a crossing
+# vehicle genuinely transits fast. Six families, weighted toward the right side
+# (the common VN approach) plus middle-blocking, crossroad crossings and a
+# 3-lane multi-lane change.
 SCENARIOS = [
-    Scenario("S01 nominal cut-in",        4.0, 24.0, 2.6,  0.0, 2.5, 5.0,  8.0,
-             "the planner_demo.py reference case"),
-    Scenario("S02 close gap",             4.0, 16.0, 2.6,  0.0, 2.0, 4.0,  8.0,
-             "starts only 16 m ahead"),
-    Scenario("S03 slow squeeze, fast ego",3.0, 22.0, 2.6,  0.0, 2.5, 4.5, 10.0,
-             "slow moto, ego wants 36 km/h"),
-    Scenario("S04 snap cut-in",           4.0, 22.0, 2.8,  0.0, 2.0, 2.8,  8.0,
-             "0.8 s lateral snap into lane"),
-    Scenario("S05 late + close",          4.0, 14.0, 2.6,  0.0, 1.0, 2.5,  9.0,
-             "cuts in early at 14 m, fast ego"),
-    Scenario("S06 cross-over",            3.5, 20.0, 3.5, -0.3, 2.0, 4.0,  9.0,
-             "comes from far side, overshoots centre"),
-    Scenario("S07 high-speed closing",    5.0, 30.0, 2.6,  0.0, 2.5, 4.5, 12.0,
-             "ego 43 km/h, larger closing rate"),
-    Scenario("S08 stall-in",              2.0, 18.0, 2.6,  0.0, 2.0, 4.0,  9.0,
-             "near-stationary moto plugs the lane"),
-    Scenario("S09 aggressive close+snap", 3.5, 12.0, 2.6,  0.0, 0.8, 2.0, 10.0,
-             "12 m, 1.2 s snap, fast ego"),
-    Scenario("S10 worst case",            2.5, 10.0, 2.6,  0.0, 0.6, 1.6, 10.0,
-             "10 m, 1.0 s snap, slow plug, fast ego"),
+    # ── cut-in from the LEFT (gentle merge into ego lane) ──
+    Scenario("L1 left cut-in, calm",      "cut_in_left",
+             6.0, 28.0,  LANE, 0.0, 2.5, 6.0,  9.0, 0.6,
+             "moto eases from the left lane over 3.5 s"),
+    Scenario("L2 left cut-in, closer",    "cut_in_left",
+             5.0, 22.0,  LANE, 0.0, 2.0, 5.5,  8.0, 0.6,
+             "shorter 22 m gap, still a 3.5 s merge"),
+
+    # ── cut-in from the RIGHT (more of these: common VN side) ──
+    Scenario("R1 right cut-in, calm",     "cut_in_right",
+             6.0, 28.0, -LANE, 0.0, 2.5, 6.0,  9.0, 0.6,
+             "moto eases in from the right lane"),
+    Scenario("R2 right cut-in, closer",   "cut_in_right",
+             5.0, 22.0, -LANE, 0.0, 2.0, 5.0,  8.0, 0.6,
+             "22 m gap, 3 s merge from the right"),
+    Scenario("R3 right shoulder merge",   "cut_in_right",
+             7.0, 32.0, -HALF, 0.0, 3.0, 6.5, 10.0, 0.6,
+             "rides up the right shoulder then merges"),
+    Scenario("R4 right cut-in, brisk",    "cut_in_right",
+             5.5, 20.0, -LANE, 0.0, 2.0, 4.5,  9.0, 0.6,
+             "slightly brisker 2.5 s merge from right"),
+
+    # ── moto driving in the MIDDLE consistently until the car arrives ──
+    Scenario("M1 slow lead in lane",      "blocking",
+             4.0, 30.0,  0.0,  0.0, 0.0, 0.0,  9.0, 0.6,
+             "moto holds ego lane at 14 km/h; ego catches up"),
+    Scenario("M2 slower lead in lane",    "blocking",
+             3.0, 24.0,  0.0,  0.0, 0.0, 0.0,  8.0, 0.6,
+             "11 km/h lead, must follow / slow"),
+    Scenario("M3 moderate lead",          "blocking",
+             5.0, 26.0,  0.0,  0.0, 0.0, 0.0, 10.0, 0.6,
+             "18 km/h lead vs a 36 km/h ego"),
+
+    # ── lane-split: moto passes riding the lane line, partial encroach ──
+    Scenario("S1 split on the left",      "lane_split",
+             8.0, 12.0,  HALF, 1.0, 1.5, 4.0,  7.0, 0.6,
+             "faster moto filters past on the left line"),
+    Scenario("S2 split on the right",     "lane_split",
+             8.0, 12.0, -HALF,-1.0, 1.5, 4.0,  7.0, 0.6,
+             "faster moto filters past on the right line"),
+
+    # ── crossing at a crossroad (real perpendicular crossing near route start) ──
+    Scenario("X1 cross L->R at junction", "crossing",
+             1.0, 18.0,  1.5*LANE, -1.5*LANE, 2.0, 3.4,  8.0, 0.6,
+             "moto crosses ego path L->R at the crossroad"),
+    Scenario("X2 cross R->L at junction", "crossing",
+             1.0, 20.0, -1.5*LANE,  1.5*LANE, 2.5, 4.0,  9.0, 0.6,
+             "moto crosses R->L, slightly later/faster ego"),
+    Scenario("X3 hesitant crosser",       "crossing",
+             1.0, 16.0,  1.3*LANE, -1.3*LANE, 2.0, 3.8,  7.0, 0.6,
+             "slower crossing, closer to ego"),
+
+    # ── multi-lane change on the 3-lane road (cross >1 lane); ego has room ──
+    Scenario("W1 2-lane merge from left", "multi_lane",
+             6.0, 26.0,  2*LANE, 0.0, 2.5, 7.0,  9.0, LANE,
+             "moto crosses 2 lanes L->ego over 4.5 s; ego may shift"),
+    Scenario("W2 2-lane merge from right","multi_lane",
+             6.0, 26.0, -2*LANE, 0.0, 2.5, 7.0,  9.0, LANE,
+             "moto crosses 2 lanes R->ego; ego may use the 3rd lane"),
+    Scenario("W3 right drift to mid-lane","multi_lane",
+             7.0, 30.0, -2*LANE,-LANE, 2.5, 6.5, 10.0, LANE,
+             "moto moves 2 lanes -> adjacent lane (stops short of ego)"),
 ]
 
 
@@ -211,6 +269,24 @@ def metrics(log, human_speed):
     }
 
 
+# ── Ego lateral sampling from the road's available room (map-grounded) ────────
+def d_samples_for(room):
+    return tuple(np.round(np.linspace(-room, room, 7), 2))
+
+
+# ── Planner variants (incl. Phung's "conservative" model from his branch) ─────
+# Each is (cost_mode, parameter overrides). "conservative" = baseline cost but
+# big fixed buffers and a low desired speed ("just be cautious everywhere"),
+# matching src/evaluate_planners.py on phung/planner-replay-tools.
+VARIANTS = {
+    "baseline":     ("baseline",   {}),
+    "conservative": ("baseline",   dict(v_desired=5.0, base_lat_buf=2.6,
+                                        base_long_buf=11.0)),
+    "moto_aware":   ("moto_aware", {}),
+}
+VARIANT_ORDER = ["baseline", "conservative", "moto_aware"]
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     print("Loading GPS + selecting straightest window...")
@@ -220,56 +296,94 @@ def main():
     print(f"  reference path: {ref.length:.0f} m, {len(win)} pts\n")
 
     rows = []
-    summary = {"baseline": 0, "moto_aware": 0}
+    n = len(SCENARIOS)
+    summary = {v: 0 for v in VARIANT_ORDER}
     for sc in SCENARIOS:
-        p = PlannerParams(dt=SIM_DT, v_desired=sc.ego_v)
         moto = make_moto(sc)
         res = {}
-        for mode in ("baseline", "moto_aware"):
-            res[mode] = metrics(simulate(ref, mode, p, moto), sc.ego_v)
-        for mode in ("baseline", "moto_aware"):
-            summary[mode] += res[mode]["collision"]
+        for vname in VARIANT_ORDER:
+            mode, ov = VARIANTS[vname]
+            base = dict(dt=SIM_DT, v_desired=sc.ego_v,
+                        d_samples=d_samples_for(sc.ego_lat_room))
+            base.update(ov)
+            res[vname] = metrics(simulate(ref, mode, PlannerParams(**base), moto),
+                                 sc.ego_v)
+            summary[vname] += res[vname]["collision"]
         rows.append((sc, res))
-        b, m = res["baseline"], res["moto_aware"]
-        print(f"{sc.name:28s} | baseline {'CRASH' if b['collision'] else ' ok  '} "
-              f"clr {b['min_clearance']:6.2f} | moto-aware "
-              f"{'CRASH' if m['collision'] else ' ok  '} clr {m['min_clearance']:6.2f}")
+        cells = "  ".join(
+            f"{v[:4]} {'X' if res[v]['collision'] else '.'}{res[v]['min_clearance']:5.2f}"
+            for v in VARIANT_ORDER)
+        print(f"{sc.name:26s} [{sc.family:12s}] | {cells}")
+
+    # ── per-family aggregation ──
+    families = []
+    for sc, _ in rows:
+        if sc.family not in families:
+            families.append(sc.family)
+
+    def agg(fam, vname, key):
+        sub = [res[vname] for sc, res in rows if sc.family == fam]
+        if key == "coll":
+            return sum(r["collision"] for r in sub), len(sub)
+        return float(np.mean([r[key] for r in sub]))
 
     # ── markdown report ──
-    L = []
-    L.append("# Motorcycle cut-in stress suite — baseline vs moto-aware planner")
-    L.append("")
-    L.append(f"Ten lane-split / cut-in scenarios on the real VinUni / Ocean Park "
-             f"GPS reference path ({ref.length:.0f} m straightest window). Identical "
-             f"scenario for both planners; only the cost function differs. "
-             f"Collision = geometric clearance (rectangle footprints) <= 0; "
-             f"min clearance threshold {CLEARANCE_MIN:.2f} m (PR2).")
-    L.append("")
-    L.append("| # | Scenario | Mode | Collision | Min clr (m) | TTC<2s (%) | "
-             "Peak decel (m/s²) | Min spd (km/h) | R_T |")
-    L.append("|---|---|---|---|---|---|---|---|---|")
-    for i, (sc, res) in enumerate(rows, 1):
-        for mode, label in (("baseline", "baseline"), ("moto_aware", "moto-aware")):
-            r = res[mode]
+    L = [f"# Realistic VN motorcycle scenario suite — 3 planners", "",
+         f"{n} scenarios across {len(families)} behaviour families on the real "
+         f"VinUni / Ocean Park GPS reference path ({ref.length:.0f} m straightest "
+         f"window). Geometry grounded in the CommonRoad map: lane width "
+         f"{LANE:.1f} m, up to 3 parallel lanes, real crossroads near the route "
+         f"start. Manoeuvres are realistic (gentle 3–5 s merges, 18–35 km/h "
+         f"motos). Three planners compared (Phung's *conservative* variant "
+         f"included): **baseline**, **conservative** (big buffers + low speed), "
+         f"**moto-aware** (ours). Collision = rectangle-footprint clearance ≤ 0; "
+         f"pass threshold {CLEARANCE_MIN:.2f} m (PR2). R_T uses each scenario's "
+         f"ego desired speed as the human reference.", "",
+         "## Overall", "",
+         "| Planner | Collisions | Mean min-clr | Mean R_T |",
+         "|---|---|---|---|"]
+    for v in VARIANT_ORDER:
+        mclr = float(np.mean([res[v]["min_clearance"] for _, res in rows]))
+        mrt = float(np.mean([res[v]["rt"] for _, res in rows]))
+        L.append(f"| {v} | {summary[v]}/{n} | {mclr:.2f} m | {mrt:.2f} |")
+
+    L += ["", "## By family (collisions | mean min-clearance)", "",
+          "| Family | n | baseline | conservative | moto-aware |",
+          "|---|---|---|---|---|"]
+    for fam in families:
+        cells = []
+        for v in VARIANT_ORDER:
+            c, nn = agg(fam, v, "coll")
+            cells.append(f"{c}/{nn}, {agg(fam, v, 'min_clearance'):.2f} m")
+        n_fam = agg(fam, "baseline", "coll")[1]
+        L.append(f"| {fam} | {n_fam} | " + " | ".join(cells) + " |")
+
+    L += ["", "## Per scenario", "",
+          "| Scenario | Family | Planner | Collision | Min clr (m) | TTC<2s (%) | "
+          "Peak decel (m/s²) | Min spd (km/h) | R_T |",
+          "|---|---|---|---|---|---|---|---|---|"]
+    for sc, res in rows:
+        for k, v in enumerate(VARIANT_ORDER):
+            r = res[v]
             crash = "**YES**" if r["collision"] else "none"
             fail = "" if r["min_clearance"] >= CLEARANCE_MIN else " ⚠"
-            L.append(f"| {i if mode=='baseline' else ''} "
-                     f"| {sc.name if mode=='baseline' else ''} "
-                     f"| {label} | {crash} | {r['min_clearance']:.2f}{fail} "
+            L.append(f"| {sc.name if k==0 else ''} | {sc.family if k==0 else ''} "
+                     f"| {v} | {crash} | {r['min_clearance']:.2f}{fail} "
                      f"| {r['ttc_exposure']:.0f} | {r['peak_decel']:.1f} "
                      f"| {r['min_speed']*3.6:.1f} | {r['rt']:.2f} |")
-    L.append("")
-    L.append(f"**Collisions: baseline {summary['baseline']}/10, "
-             f"moto-aware {summary['moto_aware']}/10.**")
-    L.append("")
-    L.append("Notes per scenario:")
-    for i, (sc, _) in enumerate(rows, 1):
-        L.append(f"- **{sc.name}** — {sc.note} "
-                 f"(moto {sc.moto_v:.1f} m/s, gap {sc.moto_s0:.0f} m, "
-                 f"cut {sc.cut_t0:.1f}–{sc.cut_t1:.1f} s, ego {sc.ego_v:.0f} m/s)")
+
+    L += ["", "**Overall collisions: " +
+          ", ".join(f"{v} {summary[v]}/{n}" for v in VARIANT_ORDER) + ".**", "",
+          "Scenario parameters:"]
+    for sc, _ in rows:
+        L.append(f"- **{sc.name}** ({sc.family}) — {sc.note} "
+                 f"[moto {sc.moto_v:.1f} m/s, gap {sc.moto_s0:.0f} m, "
+                 f"d {sc.moto_d0:+.1f}→{sc.moto_d1:+.1f} m, "
+                 f"cut {sc.cut_t0:.1f}–{sc.cut_t1:.1f} s, ego {sc.ego_v:.0f} m/s, "
+                 f"room ±{sc.ego_lat_room:.1f} m]")
     OUT_MD.write_text("\n".join(L), encoding="utf-8")
-    print(f"\nCollisions: baseline {summary['baseline']}/10, "
-          f"moto-aware {summary['moto_aware']}/10")
+    print("\nOverall collisions: " +
+          ", ".join(f"{v} {summary[v]}/{n}" for v in VARIANT_ORDER))
     print(f"Wrote {OUT_MD}")
 
 
