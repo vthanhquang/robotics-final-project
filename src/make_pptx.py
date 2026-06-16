@@ -94,8 +94,8 @@ def main():
     cover = prs.slides[0]
     phs = sorted(cover.placeholders, key=lambda p: p.top)
     texts = [("Vietnam-MixedTrafficSim", 40, True, RED),
-             ("APEX: a predictive risk-aware planner for Vietnamese mixed traffic",
-              20, False, INK),
+             ("APEX = Anticipatory · Predictive · EXclusion — a safety-constrained "
+              "planner for Vietnamese mixed traffic", 18, False, INK),
              ("ELEC5050 Robotics - Group 15   |   Do Minh Phung, Vu Thanh Quang, "
               "Nguyen Quoc Linh", 14, False, GREY)]
     for ph, (t, sz, b, c) in zip(phs, texts):
