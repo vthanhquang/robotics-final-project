@@ -1,9 +1,10 @@
 # Slide content — APEX planner (paste-ready)
 
 ## Presentation links / files
-- **Canva (present/view):** https://www.canva.com/d/OkNfFhW1EiVM4Vw
-- **Canva (edit):** https://www.canva.com/d/o4dNij0CJFhQcwB
-- _(6-slide v2: cover, problem, real-data pipeline (PR2), APEX method, results, demo)_
+- **Canva (present/view):** https://www.canva.com/d/OMURhF_yx1HwvrM
+- **Canva (edit):** https://www.canva.com/d/PV5BB8cKoJyoKsF
+- _(7-slide v3: cover, problem, **system architecture**, real-data pipeline (PR2)+screenshot, **APEX model diagram**, results, demo)_
+- Diagrams: `slides/arch_pipeline.png`, `slides/apex_model.png` (build: `python src/make_diagrams.py`)
 - **PPTX (VinUni template):** `slides/Vietnam-MixedTrafficSim_APEX.pptx` (build: `python src/make_pptx.py`)
 - **PDF deck:** `slides/SLIDES_APEX.pdf`  ·  **Demo reel:** `outputs/apex_reel.mp4`  ·  **Slide PNGs:** `outputs/slide_*.png`
 
