@@ -2,8 +2,9 @@
 
 ## Presentation links / files
 - **APEX = Anticipatory · Predictive · EXclusion** (hard-rejects any trajectory breaching the clearance margin → collision-free by construction)
-- **Canva (present/view):** https://www.canva.com/d/GDUsQ4VycSIatmc
-- **Canva (edit):** https://www.canva.com/d/hMRMSPgeW9aXDk9
+- **Canva (present/view):** https://www.canva.com/d/FsExxDZNee0GCUw
+- **Canva (edit):** https://www.canva.com/d/sdB9q9yDX4PI3Dc
+- _(v7: architecture diagrams recolored to the white/red/blue VinUni theme)_
 - _(10-slide v6: + benchmark bar chart & APEX %-improvement chart after the results table)_
 - Charts: `slides/bench_bars.png`, `slides/apex_improvement.png` (build: `python src/make_charts.py`)
 - _(8-slide v4: cover, problem, **APEX architecture — inheritance**, real-data (PR2)+screenshot, **APEX core**, results, **learning-augmented MPC**, demo)_
