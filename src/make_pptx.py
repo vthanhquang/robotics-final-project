@@ -12,12 +12,17 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
+from pptx.enum.shapes import MSO_SHAPE
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "vinuni_template_Presentation1.pptx"
 OUT = ROOT / "outputs" / "Vietnam-MixedTrafficSim_APEX.pptx"
-ARCH_IMG = ROOT / "outputs" / "arch_pipeline.png"
-APEX_IMG = ROOT / "outputs" / "apex_model.png"
+# APEX architecture sections rendered from apex_architecture.html
+INHERIT_IMG = ROOT / "outputs" / "apex_arch_inherit.png"
+CORE_IMG    = ROOT / "outputs" / "apex_arch_core.png"
+LEARN_IMG   = ROOT / "outputs" / "apex_arch_learn.png"
+DARK = RGBColor(0x0F, 0x14, 0x19)
 SHOT = ROOT / "slides" / ("Quang Vu - Vinuni - Robotic - Vietnam Mixed Trafficsim "
                           "- Real time sync driving trip "
                           "[ADWuhLiD450 - 2056x514 - 0m56s].png")
@@ -43,6 +48,23 @@ def layout_by_name(prs, name):
         if lay.name == name:
             return lay
     return prs.slide_layouts[1]
+
+
+def image_slide(prs, blank, img):
+    """Full-bleed dark slide holding one architecture image, centred."""
+    s = prs.slides.add_slide(blank)
+    SW, SH = prs.slide_width, prs.slide_height
+    rect = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, SW, SH)
+    rect.fill.solid(); rect.fill.fore_color.rgb = DARK; rect.line.fill.background()
+    iw, ih = Image.open(img).size
+    maxw, maxh = SW - Inches(0.5), SH - Inches(0.5)
+    if maxw / (iw / ih) <= maxh:          # width-bound
+        pic = s.shapes.add_picture(str(img), 0, 0, width=int(maxw))
+    else:                                 # height-bound
+        pic = s.shapes.add_picture(str(img), 0, 0, height=int(maxh))
+    pic.left = int((SW - pic.width) / 2)
+    pic.top = int((SH - pic.height) / 2)
+    return s
 
 
 def set_text(ph, text, size, bold=False, color=INK):
@@ -81,6 +103,7 @@ def main():
 
     tc = layout_by_name(prs, "Title and Content")
     to = layout_by_name(prs, "Title Only")
+    blank = layout_by_name(prs, "1_Blank")
 
     # ── Slide: Problem  (reuse the existing empty Title-and-Content slide) ──
     s = prs.slides[1]
@@ -94,11 +117,9 @@ def main():
         ("Goal: a planner that ANTICIPATES motorcycle conflicts on the real VinUni road.", 0, GREEN, True, 20),
     ])
 
-    # ── Slide: System architecture (diagram) ──
-    s = prs.slides.add_slide(to)
-    s.placeholders[0].text = "System architecture"
-    if ARCH_IMG.exists():
-        s.shapes.add_picture(str(ARCH_IMG), Inches(0.45), Inches(1.45), width=Inches(12.4))
+    # ── Slide: APEX architecture — inheritance (from apex_architecture.html) ──
+    if INHERIT_IMG.exists():
+        image_slide(prs, blank, INHERIT_IMG)
 
     # ── Slide: Real data -> behaviour -> simulation  (from PR2) ──
     s = prs.slides.add_slide(tc)
@@ -115,14 +136,9 @@ def main():
     if SHOT.exists():
         s.shapes.add_picture(str(SHOT), Inches(2.8), Inches(5.6), width=Inches(7.7))
 
-    # ── Slide: Method (APEX model diagram) ──
-    s = prs.slides.add_slide(to)
-    s.placeholders[0].text = "APEX - predictive risk-aware planner"
-    if APEX_IMG.exists():
-        s.shapes.add_picture(str(APEX_IMG), Inches(0.5), Inches(1.7), width=Inches(12.3))
-    cap = s.shapes.add_textbox(Inches(0.5), Inches(6.7), Inches(12.3), Inches(0.6))
-    bullets(cap, [("Fuses car-following (IDM) + reactive avoidance (ORCA/VO) + "
-                   "sampling (Frenet); fixes each one's flaw.", 0, GREY, False, 14)])
+    # ── Slide: APEX core (from apex_architecture.html) ──
+    if CORE_IMG.exists():
+        image_slide(prs, blank, CORE_IMG)
 
     # ── Slide: Results (table + % improvements) ──
     s = prs.slides.add_slide(to)
@@ -150,6 +166,10 @@ def main():
         ("23% faster than the only other crash-free planner (R_T 1.43 vs 1.86); beats published IDM & ORCA", 0, GREEN, False, 15),
         ("Metrics (PR2 Sec 6): collision = 0, min clearance > 0.3 m, TTC exposure < 2 s, AEB = 0, efficiency R_T <= 1.25.", 0, GREY, False, 13),
     ])
+
+    # ── Slide: Learning-augmented MPC (next stage, from apex_architecture.html) ──
+    if LEARN_IMG.exists():
+        image_slide(prs, blank, LEARN_IMG)
 
     # ── Slide: Demo & next ──
     s = prs.slides.add_slide(tc)

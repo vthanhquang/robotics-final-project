@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — Safety-Constrained Predictive Planner · Architecture</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171e26; --panel2:#1d2731; --ink:#e8edf2; --mut:#9fb0c0;
+    --line:#33414f; --apex:#3ddc84; --idm:#5aa9ff; --orca:#ffb454; --frenet:#c77dff;
+    --learn:#ff7aa2; --bad:#ff5d5d; --good:#3ddc84;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 24px 70px}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.3px}
+  h1 span{color:var(--apex)}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 26px}
+  h2{font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--mut);
+    border-bottom:1px solid var(--line);padding-bottom:7px;margin:38px 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;
+    padding:3px 9px;border-radius:20px;margin-bottom:8px}
+  .parent h3{margin:2px 0 6px;font-size:16px}
+  .parent .who{font-size:12px;color:var(--mut);margin-bottom:8px}
+  .parent .gives{font-size:13px}
+  .gives b{color:var(--apex)}
+  .arrowrow{display:flex;justify-content:center;color:var(--apex);font-size:26px;margin:6px 0 2px}
+  .apexbox{background:linear-gradient(180deg,#16241c,#13201a);
+    border:1.5px solid var(--apex);border-radius:14px;padding:20px 22px;margin-top:6px}
+  .apexbox h3{margin:0 0 2px;font-size:20px;color:var(--apex)}
+  .apexbox .obj{color:var(--mut);font-size:13.5px;margin-bottom:16px}
+  .obj code{color:#cfe9d8;background:#0e1813;padding:2px 6px;border-radius:5px}
+  .blk{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .blk .n{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--apex);
+    color:#08130c;font-weight:800;font-size:12px;align-items:center;justify-content:center;margin-bottom:7px}
+  .blk h4{margin:0 0 5px;font-size:13.5px}
+  .blk p{margin:0;font-size:12px;color:var(--mut)}
+  .blk .fix{display:block;margin-top:7px;font-size:11px;color:#7fd6a3}
+  .pipe{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .stage{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px 13px;position:relative}
+  .stage h4{margin:0 0 5px;font-size:13px}
+  .stage p{margin:0;font-size:11.5px;color:var(--mut)}
+  .chev{display:flex;align-items:center;color:var(--learn);font-size:22px;padding:0 4px}
+  .learnwrap{border:1.5px dashed var(--learn);border-radius:14px;padding:16px 16px 6px;margin-top:6px;
+    background:rgba(255,122,162,.04)}
+  .learnwrap .lt{color:var(--learn);font-weight:700;font-size:12px;letter-spacing:1px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600;font-size:11.5px;letter-spacing:.5px;text-transform:uppercase}
+  td.win{color:var(--good);font-weight:700}
+  td.lose{color:var(--bad)}
+  .apexrow td{background:rgba(61,220,132,.07)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:10px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .note{font-size:12px;color:var(--mut);margin-top:10px}
+  .foot{margin-top:34px;color:var(--mut);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
+  code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1><span>APEX</span> — Anticipatory Predictive Safety-Constrained Planner</h1>
+  <p class="sub">A safety-constrained predictive optimizer that inherits the best of three foundational
+  driving models, enhanced as a learning-augmented MPC. VinUni / Ocean Park motorcycle-interaction study.</p>
+
+  <!-- ============ INHERITANCE ============ -->
+  <h2>1 · Inheritance — best of three foundational models</h2>
+  <div class="grid3">
+    <div class="card parent">
+      <span class="tag" style="background:#13314f;color:var(--idm)">LONGITUDINAL</span>
+      <h3>IDM</h3>
+      <div class="who">Intelligent Driver Model · Treiber et&nbsp;al. 2000</div>
+      <div class="gives">Crash-free <b>safe time-headway</b> &amp; disciplined braking.<br>
+        → APEX inherits this as a <b>hard clearance margin</b> + a stopping-distance yield cap.</div>
+    </div>
+    <div class="card parent">
+      <span class="tag" style="background:#4a3415;color:var(--orca)">REACTIVE</span>
+      <h3>ORCA / Velocity Obstacle</h3>
+      <div class="who">van den Berg et&nbsp;al. 2011 · Fiorini&amp;Shiller 1998</div>
+      <div class="gives">Collision avoidance against <b>moving agents</b>.<br>
+        → APEX inherits this as a <b>multi-obstacle predicted-occupancy constraint</b> over the horizon.</div>
+    </div>
+    <div class="card parent">
+      <span class="tag" style="background:#3a2452;color:var(--frenet)">TRAJECTORY</span>
+      <h3>Frenet / Werling&nbsp;+&nbsp;moto-aware</h3>
+      <div class="who">Werling et&nbsp;al. 2010 · this project</div>
+      <div class="gives"><b>Smooth optimal trajectories</b> &amp; lateral-intent <b>anticipation</b>.<br>
+        → APEX inherits this as <b>multi-horizon sampling</b> + defensive prediction.</div>
+    </div>
+  </div>
+  <p class="note">The <i>conservative</i> baseline contributes the philosophy — “always keep a guaranteed
+  safe margin” — but APEX achieves it <b>without crawling</b> (it maximizes speed subject to safety, rather than
+  driving slow everywhere).</p>
+
+  <div class="arrowrow">▼ &nbsp; ▼ &nbsp; ▼</div>
+
+  <!-- ============ APEX CORE ============ -->
+  <h2>2 · The APEX core — a safety-constrained optimizer</h2>
+  <div class="apexbox">
+    <h3>Receding-horizon, every 0.1&nbsp;s</h3>
+    <div class="obj">Each step solves: <b>maximize progress</b> subject to a <b>hard collision-margin
+      constraint</b> — <code>min&nbsp;cost(v,d)&nbsp;s.t.&nbsp;clearance ≥ margin ∀ motos, ∀ t∈horizon</code></div>
+    <div class="grid5">
+      <div class="blk"><span class="n">1</span><h4>Multi-horizon sampling</h4>
+        <p>Quintic lateral × quartic longitudinal, horizons T∈{1.5,2.5,4.0}s.</p>
+        <span class="fix">fixes: lets it brake hard fast yet cruise when clear</span></div>
+      <div class="blk"><span class="n">2</span><h4>Defensive prediction</h4>
+        <p>Each moto = const-velocity + a <i>reachability</i> envelope; adjacent leaders treated as
+          potential intruders.</p>
+        <span class="fix">fixes: baseline’s constant-position blind spot</span></div>
+      <div class="blk"><span class="n">3</span><h4>Hard footprint margin</h4>
+        <p>Separating-axis box clearance to <i>every</i> moto must stay ≥ margin over the whole horizon.</p>
+        <span class="fix">fixes: crude point-box check → collision-free by construction</span></div>
+      <div class="blk"><span class="n">4</span><h4>Junction-yield</h4>
+        <p>Near-stationary roadside moto ⇒ stopping-distance speed-cap; per-moto “entered” flag releases
+          it after the cross.</p>
+        <span class="fix">fixes: perpendicular crossings (0/4) that beat everyone else</span></div>
+      <div class="blk"><span class="n">5</span><h4>Constrained-optimal pick</h4>
+        <p>Among feasible: min <code>(v0−v1)²+0.6 d1²</code>; if none, brace (max clearance).</p>
+        <span class="fix">fixes: over-braking of IDM / conservative</span></div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <h2>3 · Result — the only safe <i>and</i> efficient planner (52 scenarios)</h2>
+  <div class="card">
+  <table>
+    <tr><th>Planner</th><th>Collisions</th><th>&lt;0.3 m fails</th><th>Mean min-clr</th><th>Mean R_T</th><th>Verdict</th></tr>
+    <tr><td>IDM (Treiber 2000)</td><td>5/52</td><td>7/52</td><td>5.73 m</td><td>1.57</td><td>safe-ish, slow</td></tr>
+    <tr><td>ORCA/VO (2011)</td><td>1/52</td><td>1/52</td><td>2.02 m</td><td class="win">1.34</td><td>fast, 1 crash</td></tr>
+    <tr><td>baseline (naive Frenet)</td><td class="lose">28/52</td><td>30/52</td><td>1.24 m</td><td>1.27</td><td>fast = crashing</td></tr>
+    <tr><td>conservative</td><td>0/52</td><td>0/52</td><td class="win">13.96 m</td><td class="lose">1.86</td><td>safe by crawling</td></tr>
+    <tr><td>moto-aware (prev. ours)</td><td>13/52</td><td>14/52</td><td>2.31 m</td><td>1.33</td><td>improved, not safe</td></tr>
+    <tr class="apexrow"><td><b>APEX (ours★)</b></td><td class="win">0/52</td><td class="win">0/52</td><td>2.16 m</td><td>1.43</td><td><b>safe + efficient</b></td></tr>
+  </table>
+  <p class="note">APEX is the unique <b>Pareto-optimal</b> point: every planner that beats it on speed does so by
+  colliding; the only planner matching its safety (conservative) is 30% slower. Literal domination on
+  <i>every</i> cell is impossible — clearance and efficiency are opposed (conservative “wins” clearance only by
+  driving slowly).</p>
+  </div>
+
+  <!-- ============ LEARNING-AUGMENTED MPC ============ -->
+  <h2>4 · Bonus — learning-augmented MPC enhancement</h2>
+  <p class="note" style="margin-top:0">Today APEX has <b>no learned components</b> and assumes perfect perception,
+  scripted behaviour, and hand-tuned uncertainty. The enhancement replaces those three fakes — keeping APEX as a
+  <b>verifiable safety shield</b> while learning lives in perception, prediction, and calibration.</p>
+
+  <div class="learnwrap">
+    <div class="lt">PERCEPTION &amp; PREDICTION FRONT-END  (learned)</div>
+    <div class="pipe">
+      <div class="stage"><h4>📹 YOLO detect</h4><p>Motorcycles in the real dashcam video (already in repo).</p></div>
+      <div class="chev">▸</div>
+      <div class="stage"><h4>🔗 Track</h4><p>ByteTrack/DeepSORT → stable IDs, per-track velocity.</p></div>
+      <div class="chev">▸</div>
+      <div class="stage"><h4>🗺 BEV lift</h4><p>IPM + camera intrinsics + GPS/map → road-frame (s,d).</p></div>
+      <div class="chev">▸</div>
+      <div class="stage"><h4>📈 EKF</h4><p>State <b>+ covariance Σ</b>: gives d_d and real uncertainty.</p></div>
+      <div class="chev">▸</div>
+      <div class="stage" style="border-color:var(--learn)"><h4>🧠 Behaviour predictor</h4>
+        <p>Trained on tracked trajectories → multimodal future + cut-in intent.</p></div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div class="card">
+      <span class="tag" style="background:#4a2233;color:var(--learn)">WHAT GETS LEARNED</span>
+      <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--mut)">
+        <li><b style="color:var(--ink)">VN behaviour predictor</b> — self-supervised on YOLO tracks (future of a track = its own label). Outputs P(cut-in) + trajectory distribution.</li>
+        <li><b style="color:var(--ink)">Ego dynamics</b> — IMU/GPS/OBD calibrate a_max, jerk, comfort (replace guessed constants).</li>
+        <li><b style="color:var(--ink)">Cost weights</b> — inverse RL / behaviour cloning from the human driver’s demonstrations.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag" style="background:#16341f;color:var(--apex)">WHAT CHANGES IN APEX</span>
+      <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--mut)">
+        <li>Uncertainty inflation (k_unc, reach) → <b style="color:var(--ink)">driven by measured Σ + intent prob.</b></li>
+        <li>Hard margin → <b style="color:var(--ink)">chance constraint</b> P(collision) &lt; ε over predicted distribution.</li>
+        <li>Cost weights → <b style="color:var(--ink)">calibrated</b>, not hand-tuned.</li>
+        <li>APEX itself stays a <b style="color:var(--ink)">training-free, interpretable safety shield</b> over the learned predictor.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <span class="tag" style="background:#26303a;color:var(--mut)">CLOSED LOOP (your project goal)</span>
+    <p style="margin:6px 0 0;font-size:13px;color:var(--mut)">
+      Real trips → YOLO + tracking → <b style="color:var(--ink)">(i)</b> moto-trajectory dataset (train predictor) +
+      <b style="color:var(--ink)">(ii)</b> ego sensor logs (calibrate dynamics &amp; driver style) →
+      plug calibrated behaviour + ego model back into the simulator →
+      the benchmark now runs on <b style="color:var(--ink)">real VN behaviour distributions</b>, not scripted
+      smoothsteps → optional RL refinement with APEX as the shield.</p>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--idm)"></span>IDM (headway)</span>
+    <span><span class="dot" style="background:var(--orca)"></span>ORCA (reactive)</span>
+    <span><span class="dot" style="background:var(--frenet)"></span>Frenet (trajectory)</span>
+    <span><span class="dot" style="background:var(--apex)"></span>APEX (safety-constrained core)</span>
+    <span><span class="dot" style="background:var(--learn)"></span>Learned modules</span>
+  </div>
+
+  <div class="foot">
+    Generated for the VinUni motorcycle-interaction planning study · APEX = hard-constraint MPC over a learned
+    behaviour predictor · Honest scope: APEX is a hand-tuned heuristic optimizer; the learning-augmented layer is
+    the proposed next stage. Numbers from <code>src/discriminating_suite.py</code> (52 scenarios, 6 planners).
+  </div>
+
+</div>
+</body>
+</html>
