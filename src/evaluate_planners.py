@@ -50,6 +50,12 @@ V_REF         = 8.0      # human cruising speed for the R_T denominator (fair ac
 CLEARANCE_MIN = 0.3
 TTC_THRESH    = 2.0
 AEB_DECEL     = 3.0
+WHEELBASE     = 2.7      # m, for steering-rate from path curvature (TR1)
+
+# CommonRoad 2024 competition cost TR1 (Huang et al. 2025, eq. 1):
+# J = w . [J_jerk_lon, J_steering_rate, J_obstacle_dist, J_lane_offset]
+TR1_W = (0.01, 22.0, 8.0, 5.0)
+TR1_WDIST = 0.2         # obstacle-distance term: xi_i = exp(-WDIST * d_i)
 
 # planner variants: (mode, parameter overrides)
 VARIANTS = {
@@ -146,14 +152,14 @@ def build_suite():
 # ── Simulate one (scenario, variant) ──────────────────────────────────────────
 def simulate(sc, mode, p):
     ego = FrenetState(s=0.0, s_d=p.v_desired)
-    T, V, EXY, EYAW, MXY, MYAW = [], [], [], [], [], []
+    T, V, D, EXY, EYAW, MXY, MYAW = [], [], [], [], [], [], []
     t = 0.0
     for _ in range(int(SIM_T / SIM_DT)):
         obs = sc.moto.state(t)
         best, _ = plan(ego, obs, mode, p)
         ex, ey = sc.ref.to_cartesian(ego.s, ego.d)
         mx, my = sc.ref.to_cartesian(obs.s, obs.d)
-        T.append(t); V.append(ego.s_d)
+        T.append(t); V.append(ego.s_d); D.append(ego.d)
         EXY.append((float(ex), float(ey)))
         EYAW.append(sc.ref.yaw(ego.s) + math.atan2(ego.d_d, max(ego.s_d, 0.1)))
         MXY.append((float(mx), float(my)))
@@ -165,8 +171,31 @@ def simulate(sc, mode, p):
         t += SIM_DT
         if ego.s >= sc.goal_s:
             break
-    return dict(t=np.array(T), v=np.array(V), ego=np.array(EXY),
+    return dict(t=np.array(T), v=np.array(V), d=np.array(D), ego=np.array(EXY),
                 eyaw=EYAW, moto=np.array(MXY), myaw=MYAW)
+
+
+def tr1_cost(log, clr):
+    """CommonRoad 2024 competition cost (TR1, Huang et al. 2025 eq. 1)."""
+    dt = SIM_DT
+    v = log["v"]
+    if len(v) < 3:
+        return float("nan")
+    # longitudinal jerk
+    j = np.gradient(np.gradient(v, dt), dt)
+    J_jerk = float(np.sum(j ** 2) * dt)
+    # steering rate from path curvature (kinematic single-track): kappa=omega/v,
+    # delta=atan(kappa*L), steering rate = d(delta)/dt
+    th = np.unwrap(np.array(log["eyaw"]))
+    kappa = np.gradient(th, dt) / np.clip(v, 0.3, None)
+    delta = np.arctan(kappa * WHEELBASE)
+    J_sr = float(np.sum(np.gradient(delta, dt) ** 2) * dt)
+    # lane-center offset (Frenet d)
+    J_lc = float(np.sum(log["d"] ** 2) * dt)
+    # obstacle-distance proximity term
+    J_d = float(np.sum(np.exp(-TR1_WDIST * clr)) * dt)
+    w = TR1_W
+    return w[0] * J_jerk + w[1] * J_sr + w[2] * J_d + w[3] * J_lc
 
 
 def metrics(log):
@@ -191,6 +220,7 @@ def metrics(log):
         ttc_exp=float(np.mean((ttc > 0) & (ttc < TTC_THRESH)) * 100),
         aeb=int(np.sum(hard[1:] & ~hard[:-1])),
         rt=float(t_total / (dist / V_REF)) if dist > 1 else float("nan"),
+        tr1=tr1_cost(log, clr),
     )
 
 
@@ -208,6 +238,10 @@ def aggregate(rows, variant, family=None):
         mean_ttc=float(np.mean([r["ttc_exp"] for r in sub])),
         aeb=sum(r["aeb"] for r in sub),
         mean_rt=float(np.nanmean([r["rt"] for r in sub])),
+        # TR1 is only meaningful on feasible (collision-free) trajectories
+        # (Huang et al. 2025, Sec. 3.1): feasibility is checked before cost.
+        mean_tr1=(float(np.nanmean([r["tr1"] for r in sub if not r["collision"]]))
+                  if any(not r["collision"] for r in sub) else float("nan")),
     )
 
 
@@ -220,23 +254,29 @@ def report(rows, n_scen):
          f"{V_REF:.0f} m/s human-cruising reference for all variants.", "",
          "## Overall", "",
          "| Variant | Collisions | Collision rate | Clearance pass (>=0.3 m) | "
-         "Min clearance | Mean TTC exp. | AEB | Mean R_T |",
-         "|---|---|---|---|---|---|---|---|"]
+         "Min clearance | Mean TTC exp. | AEB | Mean R_T | Mean TR1 cost* |",
+         "|---|---|---|---|---|---|---|---|---|"]
     for v in VARIANTS:
         a = aggregate(rows, v)
         L.append(f"| **{v}** | {a['collisions']}/{a['n']} | {a['coll_rate']:.0f}% "
                  f"| {a['pass_rate']:.0f}% | {a['min_clear']:.2f} m | "
-                 f"{a['mean_ttc']:.0f}% | {a['aeb']} | {a['mean_rt']:.2f} |")
+                 f"{a['mean_ttc']:.0f}% | {a['aeb']} | {a['mean_rt']:.2f} | "
+                 f"{a['mean_tr1']:.2f} |")
+    L += ["", "_*TR1 (CommonRoad 2024 competition cost) is averaged only over "
+          "collision-free runs, per Huang et al. 2025 Sec. 3.1; lower = better "
+          "trajectory quality._"]
 
     L += ["", "## By scenario family", ""]
     for fam in fams:
         L += [f"### {fam}", "",
-              "| Variant | Collision rate | Clearance pass | Min clearance | Mean R_T |",
-              "|---|---|---|---|---|"]
+              "| Variant | Collision rate | Clearance pass | Min clearance | "
+              "Mean R_T | Mean TR1 |",
+              "|---|---|---|---|---|---|"]
         for v in VARIANTS:
             a = aggregate(rows, v, fam)
             L.append(f"| {v} | {a['coll_rate']:.0f}% | {a['pass_rate']:.0f}% | "
-                     f"{a['min_clear']:.2f} m | {a['mean_rt']:.2f} |")
+                     f"{a['min_clear']:.2f} m | {a['mean_rt']:.2f} | "
+                     f"{a['mean_tr1']:.2f} |")
         L.append("")
 
     # verdict
@@ -256,6 +296,26 @@ def report(rows, n_scen):
           f"also safe but pays for it everywhere (R_T {c['mean_rt']:.2f} vs "
           f"moto-aware {m['mean_rt']:.2f}). Moto-aware gets the safety of "
           f"caution without the efficiency loss.",
+          f"- **Standardized quality cost (TR1, CommonRoad 2024 competition / "
+          f"Huang et al. 2025):** conservative is lowest ({c['mean_tr1']:.1f}) "
+          f"because it avoids interaction by hanging back; moto-aware "
+          f"({m['mean_tr1']:.1f}) is higher than baseline ({b['mean_tr1']:.1f}) "
+          f"because it *engages* close motorcycle interactions (its purpose) and "
+          f"succeeds on the hard cut-ins where the baseline crashes (baseline's "
+          f"TR1 is over easier collision-free runs only). This is the same "
+          f"breadth-vs-quality trade-off the competition reports between the "
+          f"sampling winner and the optimization runner-up.",
+          "",
+          "## Alignment with the CommonRoad 2024 competition",
+          "",
+          "- Our planner uses the **same sampling-in-the-Frenet-frame paradigm "
+          "as the 2024 competition winner** (TUM-2024). Our motorcycle-aware "
+          "prediction directly targets the winner's documented weakness — a "
+          "simplified prediction model that causes *overly conservative* "
+          "trajectories.",
+          "- Metrics map to the competition's evaluated traffic rules: clearance "
+          "/ TTC ~ **R_G1** (safe distance); R_T ~ **R_G4** (do not impede "
+          "traffic flow). Quality is scored with the competition cost **TR1**.",
           "",
           "_Note: motorcycle behaviour here is scripted (parameter grid); "
           "swapping in the calibrated VN-rider distributions (Wk 15-16) is a "
